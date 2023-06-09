@@ -26,18 +26,32 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
         const database = client.db('music_master');
-        
+
         //collection
-        const users = database.collection('users');
+        const usersCollection = database.collection('users');
 
-
+        //Users api
+        app.post('/users', async(req, res) => {
+            const user = req.body;
+            const query = { email: user.email };
+            const alreadyUser = await usersCollection.findOne(query);
+            if (!alreadyUser) {
+                const result = await usersCollection.insertOne(user);
+                console.log(result);
+                res.send(result);
+            } else {
+                res.send({ message: 'user already exist' });
+                console.log('Already user');
+            }
+           
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
-        await client.close();
+        //await client.close();
     }
 }
 run().catch(console.dir);
