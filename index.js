@@ -29,7 +29,13 @@ async function run() {
 
         //collection
         const usersCollection = database.collection('users');
+        const classCollection = database.collection('classes');
 
+        //Classes api
+        app.get('/classes', async (req, res) => {
+            const result = await classCollection.find().toArray();
+            res.send(result);
+        })
         //Users api
         app.post('/users', async(req, res) => {
             const user = req.body;
