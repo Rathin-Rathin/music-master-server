@@ -36,12 +36,20 @@ async function run() {
             const result = await classCollection.find().toArray();
             res.send(result);
         })
+        app.get('/classes/:email', async (req, res) => {
+            const email = req.params.email;
+            // TODO:Have to check user authentication 
+            const query = { userEmail: email };
+            const result = await classCollection.find(query).toArray();
+            res.send(result);
+        })
         app.post('/classes', async (req, res) => {
             const data = req.body;
             const result = await classCollection.insertOne(data);
             res.send(result);
 
         })
+        
         //Users api
         app.post('/users', async(req, res) => {
             const user = req.body;
