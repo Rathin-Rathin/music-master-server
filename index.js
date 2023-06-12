@@ -36,6 +36,12 @@ async function run() {
             const result = await classCollection.find().toArray();
             res.send(result);
         })
+        app.post('/classes', async (req, res) => {
+            const data = req.body;
+            const result = await classCollection.insertOne(data);
+            res.send(result);
+
+        })
         //Users api
         app.post('/users', async(req, res) => {
             const user = req.body;
@@ -43,11 +49,9 @@ async function run() {
             const alreadyUser = await usersCollection.findOne(query);
             if (!alreadyUser) {
                 const result = await usersCollection.insertOne(user);
-                console.log(result);
                 res.send(result);
             } else {
                 res.send({ message: 'user already exist' });
-                console.log('Already user');
             }
            
         })
