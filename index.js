@@ -186,6 +186,23 @@ async function run() {
             const result = await ordersCollection.insertOne(ordersData);
             res.send(result);
         })
+        app.get('/selectClass/:email',verifyJwt, async (req, res) => {
+            const email = req.params.email;
+            const decodedEmail = req.decoded.email;
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'Forbidden access' })
+            }
+            const query = { user: email };
+            const result = await ordersCollection.find(query).toArray();
+            res.send(result);
+        })
+        //Delete class
+        app.delete('/classDelete/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await ordersCollection.deleteOne(query);
+            res.send(result);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
