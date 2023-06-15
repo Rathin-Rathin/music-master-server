@@ -12,17 +12,17 @@ app.use(express.json());
 const verifyJwt = (req, res, next) => {
     const authorization = req.headers.authorization;
     if (!authorization) {
-        return res.status(401).send({error:true,message:'Unauthorized access'})
+        return res.status(401).send({ error: true, message: 'Unauthorized access' })
     }
     const token = authorization.split(' ')[1];
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(401).send({error:true,message:'Unauthorized access'})
+            return res.status(401).send({ error: true, message: 'Unauthorized access' })
         }
         req.decoded = decoded;
         next();
     })
-    
+
 }
 
 //Mongodb
@@ -41,31 +41,39 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
         const database = client.db('music_master');
 
         //collection
         const usersCollection = database.collection('users');
         const classCollection = database.collection('classes');
+        const ordersCollection = database.collection('orders');
+
         //jsonwebtoken
-        app.post('/jwt',(req, res) => {
-            const  email  = req.body;
-            const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET, { expiresIn:'7d' })
-            res.send({token});
+        app.post('/jwt', (req, res) => {
+            const email = req.body;
+            const token = jwt.sign(email, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '7d' })
+            res.send({ token });
         })
 
 
 
         //popular classes api
+        app.get('/popularAllClass', async (req, res) => {
+            const result = await classCollection.find().sort({price:-1}).toArray();
+            res.send(result);
+            
+        })
+        //All classes api
         app.get('/classes', async (req, res) => {
             const result = await classCollection.find().toArray();
             res.send(result);
         })
-        app.get('/classes/:email',verifyJwt, async (req, res) => {
+        app.get('/classes/:email', verifyJwt, async (req, res) => {
             const email = req.params.email;
             const decodedEmail = req.decoded.email;
             if (email !== decodedEmail) {
-                return res.status(403).send({error:true,message:'Forbidden access'})
+                return res.status(403).send({ error: true, message: 'Forbidden access' })
             }
             const query = { userEmail: email };
             const result = await classCollection.find(query).toArray();
@@ -78,11 +86,11 @@ async function run() {
 
         })
         //update ins class data
-        app.put('/updateInsData/:id', async (req, res) => {
+        app.put('/updateInsData/:id',async (req, res) => {
             const id = req.params.id;
             const data = req.body;
             const query = { _id: new ObjectId(id) }
-            const updateClass={
+            const updateClass = {
                 $set: {
                     name: data.courseName,
                     img: data.img,
@@ -90,11 +98,51 @@ async function run() {
                     price: data.price
                 }
             }
-            const result=await classCollection.updateOne(query,updateClass)
-            res.send(result); 
+            const result = await classCollection.updateOne(query, updateClass)
+            res.send(result);
+        })
+        app.patch('/makeInstructor/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const option = {
+                $set: {
+                    role:'instructor'
+                }
+            }
+            const result = await usersCollection.updateOne(query, option);
+            res.send(result);
+        })
+        //Admin api
+        app.get('/allClasses', verifyJwt, async (req, res) => {
+            const result = await classCollection.find().toArray();
+            res.send(result);
+        })
+        //Approved by Admin
+        app.patch(`/approved/:id`, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const option = {
+                $set: {
+                    status: 'approved'
+                },
+            }
+            const result = await classCollection.updateOne(query, option);
+            res.send(result);
+        })
+        //Deny by admin
+        app.patch(`/deny/:id`, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const option = {
+                $set: {
+                    status: 'deny'
+                },
+            }
+            const result = await classCollection.updateOne(query, option);
+            res.send(result);
         })
         //Users api
-        app.post('/users', async(req, res) => {
+        app.post('/users', async (req, res) => {
             const user = req.body;
             const query = { email: user.email };
             const alreadyUser = await usersCollection.findOne(query);
@@ -104,7 +152,39 @@ async function run() {
             } else {
                 res.send({ message: 'user already exist' });
             }
-           
+
+        })
+        app.get('/allUsers', verifyJwt, async (req, res) => {
+            const result = await usersCollection.find().toArray();
+            res.send(result);
+        })
+        app.patch('/makeAdmin/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const option = {
+                $set: {
+                    role:'admin'
+                }
+            }
+            const result = await usersCollection.updateOne(query, option);
+            res.send(result);
+        })
+        // Student api
+        app.patch('/student/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const option = {
+                $set: {
+                    role:'student'
+                }
+            }
+            const result = await usersCollection.updateOne(query, option);
+            res.send(result);
+        })
+        app.post('/selectCurse/', async (req, res) => {
+            const ordersData = req.body;
+            const result = await ordersCollection.insertOne(ordersData);
+            res.send(result);
         })
 
         // Send a ping to confirm a successful connection
