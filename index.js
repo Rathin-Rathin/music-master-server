@@ -3,8 +3,8 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 5000;
-
 require('dotenv').config();
+const Stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 app.use(cors());
 app.use(express.json());
 
@@ -28,6 +28,7 @@ const verifyJwt = (req, res, next) => {
 //Mongodb
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+// const { default: Stripe } = require('stripe');
 const uri = `mongodb+srv://${process.env.DB_user}:${process.env.DB_pass}@cluster0.z5uza0f.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -202,6 +203,24 @@ async function run() {
             const query = { _id: new ObjectId(id) }
             const result = await ordersCollection.deleteOne(query);
             res.send(result);
+        })
+        //Payment
+        app.post('/payment', async (req, res) => {
+            const { token, amount } = req.body;
+            let status, error;
+            try {
+                await Stripe.charges.create({
+                    source: token.id,
+                    amount,
+                    currency:'usd'
+                })
+                status = 'success';
+                
+            } catch (error) {
+                status="Failed"
+                console.log(error);
+            }
+            res.send({error,status})
         })
 
         // Send a ping to confirm a successful connection
